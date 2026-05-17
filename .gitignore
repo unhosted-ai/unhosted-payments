@@ -4,3 +4,8 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# Rust
+target/
+**/*.rs.bk
+Cargo.lock

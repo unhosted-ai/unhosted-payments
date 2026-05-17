@@ -1,0 +1,20 @@
+[package]
+name = "unhosted-payments-core"
+version = "0.0.1"
+description = "Settlement primitives for unhosted public-mode: payment-rail enum, per-peer policy, signed-receipt verification."
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+
+[dependencies]
+serde = { workspace = true }
+serde_json = { workspace = true }
+ed25519-dalek = { workspace = true }
+base64 = { workspace = true }
+thiserror = { workspace = true }
+
+[dev-dependencies]
+ed25519-dalek = { workspace = true, features = ["rand_core"] }
+rand = "0.8"
