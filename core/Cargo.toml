@@ -1,6 +1,6 @@
 [package]
 name = "unhosted-payments-core"
-version = "0.0.1"
+version = "0.0.2"
 description = "Settlement primitives for unhosted public-mode: payment-rail enum, per-peer policy, signed-receipt verification."
 edition.workspace = true
 rust-version.workspace = true

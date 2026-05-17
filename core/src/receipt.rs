@@ -16,6 +16,8 @@
 
 use std::collections::BTreeMap;
 
+use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
+use ed25519_dalek::{Signer, SigningKey};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 
@@ -60,6 +62,8 @@ pub enum ReceiptError {
     BadSignature,
     #[error("receipt could not be canonicalized: {0}")]
     Canonicalize(String),
+    #[error("report.host_pubkey does not match the signing key")]
+    HostKeyMismatch,
 }
 
 // Public so the host (signer) can compute the same bytes it will
@@ -90,11 +94,35 @@ pub fn verify_receipt(receipt: &SignedReceipt) -> Result<(), ReceiptError> {
     verify_sig(&key, &bytes, &receipt.sig).map_err(|_| ReceiptError::BadSignature)
 }
 
+/// Sign a `UsageReport` with the host's Ed25519 key and return a
+/// `SignedReceipt` ready for the wire. The caller is responsible for
+/// having already populated `report.host_pubkey` with the base64
+/// (no-pad) of the *same* key — `sign_receipt` does not overwrite it.
+/// We check the consistency before signing and return
+/// `HostKeyMismatch` if the report claims a different signer than the
+/// provided key, because the alternative (silently overwriting) makes
+/// for a confusing wire format where the claimed pubkey doesn't
+/// match what the verifier would compute from the sig.
+pub fn sign_receipt(
+    report: UsageReport,
+    signing_key: &SigningKey,
+) -> Result<SignedReceipt, ReceiptError> {
+    let key_bytes = signing_key.verifying_key().to_bytes();
+    let key_b64 = STANDARD_NO_PAD.encode(key_bytes);
+    if report.host_pubkey != key_b64 {
+        return Err(ReceiptError::HostKeyMismatch);
+    }
+    let bytes = canonical_json(&report)?;
+    let sig = signing_key.sign(&bytes);
+    Ok(SignedReceipt {
+        report,
+        sig: STANDARD_NO_PAD.encode(sig.to_bytes()),
+    })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
-    use ed25519_dalek::{Signer, SigningKey};
     use rand::rngs::OsRng;
 
     fn make_signing_key() -> SigningKey {
@@ -180,6 +208,32 @@ mod tests {
             sig: b64(&sig.to_bytes()),
         };
         assert_eq!(verify_receipt(&receipt), Err(ReceiptError::BadSignature));
+    }
+
+    #[test]
+    fn sign_receipt_round_trips_with_verify() {
+        let host = make_signing_key();
+        let payer = make_signing_key();
+        let report = make_report(&host, &payer);
+        let receipt = sign_receipt(report, &host).unwrap();
+        assert_eq!(verify_receipt(&receipt), Ok(()));
+    }
+
+    #[test]
+    fn sign_receipt_rejects_pubkey_mismatch() {
+        // Caller filled host_pubkey with one key but passed a
+        // different signing key. We refuse rather than silently
+        // overwriting — the alternative is wire receipts where the
+        // claimed pubkey lies about who actually signed.
+        let actual = make_signing_key();
+        let imposter = make_signing_key();
+        let payer = make_signing_key();
+        let mut report = make_report(&actual, &payer);
+        report.host_pubkey = b64(imposter.verifying_key().as_bytes());
+        assert_eq!(
+            sign_receipt(report, &actual),
+            Err(ReceiptError::HostKeyMismatch)
+        );
     }
 
     #[test]

@@ -19,7 +19,7 @@ pub mod policy;
 pub mod receipt;
 
 pub use policy::{PeerPaymentPolicy, PolicyError};
-pub use receipt::{verify_receipt, ReceiptError, SignedReceipt, UsageReport};
+pub use receipt::{sign_receipt, verify_receipt, ReceiptError, SignedReceipt, UsageReport};
 
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
 use ed25519_dalek::{Signature, Verifier, VerifyingKey};
