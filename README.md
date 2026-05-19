@@ -10,18 +10,26 @@ Separate from the daemon repo for three reasons:
 
 ## Status
 
-Pre-design. No code yet. The first deliverable is ADR-0010 (sketched at [`design/0010-transactional-public-mode.md`](./design/0010-transactional-public-mode.md)) covering payment-type and country-dimension policy gating before any implementation lands.
+ADR-0010 ([`design/0010-transactional-public-mode.md`](./design/0010-transactional-public-mode.md)) is the slicing plan. Five slices total.
 
-## Planned layout
+| Slice | What ships | Status |
+| --- | --- | --- |
+| 1 | `core/` crate: `PeerPaymentPolicy`, `PaymentRail`, `KycTier`, `Country`, `SignedReceipt`, `verify_receipt`, `sign_receipt` | **shipped** (`unhosted-payments-core` 0.0.2) |
+| 2 | Daemon integration in `unhosted-core` (`/v1/public-mode/policy`, `/inspect`, `/receipt/sign`, `/quote`) | **shipped** (in `unhosted-core` v0.0.39) |
+| 3 | First rail (Lightning leading candidate) | pending |
+| 4 | `wallet-js/` payer helpers | **shipped** (`@unhosted-ai/wallet-js` 0.0.1) |
+| 5 | `contracts/` Solidity escrow on Base | pending |
+
+Cross-language wire compatibility (Rust ↔ TypeScript) is verified by the wallet-js integration test, which signs a quote in Node and posts it to a running daemon.
+
+## Layout
 
 ```
 design/         ADRs and threat models
-core/           Rust crate: PeerPaymentPolicy, settlement-state types, signed-receipt verification
-wallet-js/     TypeScript: wallet-host helpers for browser / Node
-contracts/      Solidity: escrow + receipt-anchor on Base (if/when we use a chain)
+core/           Rust crate: PeerPaymentPolicy + signed-receipt verification
+wallet-js/      TypeScript: payer-side helpers for browser / Node
+contracts/      Solidity: escrow + receipt-anchor on Base (planned)
 ```
-
-Nothing in those dirs yet — they appear as the ADR is reviewed and the first slice is approved.
 
 ## License
 
