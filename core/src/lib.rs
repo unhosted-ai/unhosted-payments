@@ -16,9 +16,14 @@
 #![forbid(unsafe_code)]
 
 pub mod policy;
+pub mod rail;
 pub mod receipt;
 
 pub use policy::{PeerPaymentPolicy, PolicyError};
+pub use rail::{
+    ManualAdapter, PaymentIntent, RailAdapter, RailError, RailQuote, RailRegistry, RefundReceipt,
+    SettlementState,
+};
 pub use receipt::{sign_receipt, verify_receipt, ReceiptError, SignedReceipt, UsageReport};
 
 use base64::{engine::general_purpose::STANDARD_NO_PAD, Engine};
